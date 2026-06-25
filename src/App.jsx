@@ -420,6 +420,8 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setCurrentUser(session?.user?.id ?? null)
+    }).catch(() => {
+      setSession(null)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
@@ -533,8 +535,8 @@ export default function App() {
     const el = cardRefs.current[index]
     if (el) {
       suppressScrollRef.current = true
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      setTimeout(() => { suppressScrollRef.current = false }, 450)
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setTimeout(() => { suppressScrollRef.current = false }, 600)
     }
   }
 
