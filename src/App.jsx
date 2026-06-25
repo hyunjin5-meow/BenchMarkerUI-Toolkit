@@ -641,6 +641,17 @@ export default function App() {
   }, [mcqs, sessionId])
 
   // ── Analysis ─────────────────────────────────────────────────────────────────
+  function dedupePatches(patches) {
+    let sawRewrite = false
+    return patches.filter((p) => {
+      if (p.replaced_text === 'This question requires a full rewrite.') {
+        if (sawRewrite) return false
+        sawRewrite = true
+      }
+      return true
+    })
+  }
+
   async function analyzeAll() {
     setIsAnalyzingAll(true)
     const snapshot = mcqsRef.current
@@ -652,7 +663,7 @@ export default function App() {
       const mcq = snapshot[index]
       setMcqs((prev) => prev.map((m, i) => (i === index ? { ...m, status: 'loading' } : m)))
       try {
-        const patches = await fetchPatches(mcq)
+        const patches = dedupePatches(await fetchPatches(mcq))
         setMcqs((prev) => prev.map((m, i) => (i === index ? { ...m, patches, status: 'done' } : m)))
       } catch {
         setMcqs((prev) => prev.map((m, i) => (i === index ? { ...m, patches: [], status: 'done' } : m)))
@@ -717,7 +728,7 @@ export default function App() {
     setMcqs((prev) => prev.map((m, i) => (i === index ? { ...m, status: 'loading' } : m)))
     fetchPatches(mcq)
       .then((patches) => {
-        setMcqs((prev) => prev.map((m, i) => (i === index ? { ...m, patches, status: 'done' } : m)))
+        setMcqs((prev) => prev.map((m, i) => (i === index ? { ...m, patches: dedupePatches(patches), status: 'done' } : m)))
       })
       .catch(() => {
         setMcqs((prev) => prev.map((m, i) => (i === index ? { ...m, patches: [], status: 'done' } : m)))
