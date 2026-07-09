@@ -1,4 +1,4 @@
-const BASE = 'http://localhost:8000/api'
+const BASE = '/backend/api'
 
 // Set by App.jsx whenever the auth session changes
 let currentUserId = null
