@@ -197,6 +197,7 @@ Here are the flaws in the multiple-choice question, which are issues in the gram
 <rewriting guidelines>
 - The rewritten multiple-choice question should have a clear question stem, an unambiguous correct answer, and plausible but ultimately incorrect distractor choices.
 - Generate each choice directly, do not precede them with a letter, number, or symbol.
+- Preserve the exact number of answer choices. The rewritten question MUST have the same count of choices as the original — do not drop, merge, or add options. Fix flaws by editing options in place.
 - Only change what is needed to correct the flaws in the multiple-choice question. For example, if the question has a grammatical error in the question stem, only change the question stem, not the choices.
 - In your explanation, state the flaws that the original question had and how you corrected them in the rewritten question.
 </rewriting guidelines>

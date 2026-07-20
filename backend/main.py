@@ -1,6 +1,8 @@
 import asyncio
+import hashlib
 import json
 import os
+import random
 import re
 from typing import Any, Optional
 
@@ -14,6 +16,7 @@ from pydantic import BaseModel
 from supabase import create_client
 
 from prompts import (
+    LETTERS,
     build_add_distractors_prompt,
     build_blooms_prompt,
     build_custom_rewrite_prompt,
@@ -25,6 +28,9 @@ from prompts import (
 
 load_dotenv()
 
+_key = os.getenv("OPENAI_API_KEY")
+print(f"[startup] OPENAI_API_KEY loaded: {'YES (' + _key[:8] + '...)' if _key else 'NO - MISSING'}", flush=True)
+
 app = FastAPI()
 
 app.add_middleware(
@@ -34,8 +40,8 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-async_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url="https://us.api.openai.com/v1")
+async_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"), base_url="https://us.api.openai.com/v1")
 MODEL = "gpt-4.1-2025-04-14"
 TEST_MODELS = [
     "gpt-4.1-mini-2025-04-14",
@@ -75,7 +81,70 @@ def call_openai(prompt: str) -> dict:
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=502, detail=f"Model returned invalid JSON: {e}")
     except Exception as e:
+        print(f"[openai error] {type(e).__name__}: {e}", flush=True)
         raise HTTPException(status_code=502, detail=str(e))
+
+
+def _resolve_answer_index(answer, choices) -> Optional[int]:
+    """Map a model answer (letter / 0-index / choice text) to a choice index."""
+    s = str(answer).strip()
+    up = s.upper()
+    if len(up) == 1 and up.isalpha():
+        idx = LETTERS.find(up)
+        if 0 <= idx < len(choices):
+            return idx
+    if s.isdigit():
+        idx = int(s)
+        if 0 <= idx < len(choices):
+            return idx
+    for i, c in enumerate(choices):
+        if str(c).strip().lower() == s.lower():
+            return i
+    return None
+
+
+def normalize_rewrite(original_choices: list[str], result: dict) -> dict:
+    """Make a fix-flaws rewrite comparable to the source item.
+
+    The rewrite model tends to (a) collapse long option lists down to ~4 and
+    (b) float the correct answer to position A. Both silently break the
+    original/fixed/fixed_rewrite comparison: fewer distractors makes the item
+    easier, and a front-loaded gold turns accuracy into position bias.
+
+    So we hard-fail on a changed choice count (never silently drop options) and
+    deterministically shuffle the options so the gold letter is uniformly
+    distributed. The shuffle is seeded by the rewritten question text, so a
+    given item always produces the same layout across re-runs (reproducible).
+    """
+    choices = result.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise HTTPException(status_code=502, detail="Rewrite returned no choices list.")
+
+    if len(choices) != len(original_choices):
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                f"Rewrite changed the choice count "
+                f"({len(original_choices)} -> {len(choices)}). A fix-flaws rewrite "
+                "must preserve the number of options so it stays comparable to the "
+                "original item."
+            ),
+        )
+
+    idx = _resolve_answer_index(result.get("answer"), choices)
+    if idx is None:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Rewrite answer {result.get('answer')!r} does not identify a choice.",
+        )
+
+    order = list(range(len(choices)))
+    seed = int(hashlib.sha256(str(result.get("question", "")).encode()).hexdigest(), 16)
+    random.Random(seed).shuffle(order)
+
+    result["choices"] = [choices[i] for i in order]
+    result["answer"] = LETTERS[order.index(idx)]
+    return result
 
 
 # ---------- request models ----------
@@ -153,7 +222,8 @@ def patch(body: PatchBody):
 @app.post("/api/rewrite")
 def rewrite(body: RewriteBody):
     mcq_text = format_mcq(body.question, body.choices, body.answer)
-    return call_openai(build_fix_flaws_prompt(mcq_text, body.feedback))
+    result = call_openai(build_fix_flaws_prompt(mcq_text, body.feedback))
+    return normalize_rewrite(body.choices, result)
 
 
 @app.post("/api/custom-rewrite")

@@ -30,6 +30,16 @@ function normalizeJson(raw) {
         answer: String(item.correct ?? item.answer ?? 'A').trim().toUpperCase().charAt(0),
       }
     }
+    // TruthfulQA mc1_targets format: { question, mc1_targets: { choices, labels } }
+    if (item.question && item.mc1_targets && Array.isArray(item.mc1_targets.choices)) {
+      const { choices, labels } = item.mc1_targets
+      const correctIdx = Array.isArray(labels) ? labels.indexOf(1) : -1
+      return {
+        question: String(item.question).trim(),
+        choices: choices.map((c) => String(c).trim()),
+        answer: correctIdx >= 0 ? String.fromCharCode(65 + correctIdx) : 'A',
+      }
+    }
     throw new Error(`Item at index ${i} has an unrecognised format.`)
   })
 }

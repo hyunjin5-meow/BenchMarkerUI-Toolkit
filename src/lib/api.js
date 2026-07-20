@@ -18,7 +18,7 @@ async function call(endpoint, body) {
 }
 
 async function get(endpoint, params = {}) {
-  const url = new URL(`${BASE}/${endpoint}`)
+  const url = new URL(`${BASE}/${endpoint}`, window.location.origin)
   Object.entries(params).forEach(([k, v]) => { if (v != null) url.searchParams.append(k, v) })
   const res = await fetch(url.toString())
   if (!res.ok) {
