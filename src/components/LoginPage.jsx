@@ -39,7 +39,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
         {/* Header */}
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-semibold text-gray-900">MCQ Benchmarker</h1>
+          <h1 className="text-xl font-semibold text-gray-900">BenchMarkerUI</h1>
           <p className="mt-1 text-sm text-gray-500">
             Analyze and improve your multiple-choice questions
           </p>
