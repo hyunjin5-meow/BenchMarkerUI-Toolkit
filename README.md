@@ -3,6 +3,7 @@
 A full-stack web application for analyzing and improving multiple-choice questions (MCQs) in AI benchmarks. Built as part of an undergraduate research project at the [CLIP Lab](https://clip.cs.umd.edu/), University of Maryland, under the supervision of [Jordan Boyd-Graber](http://users.umiacs.umd.edu/~jbg/) and mentorship of [Nishant Balepur](https://nbalepur.github.io/).
 
 This tool builds on our ACL 2026 paper, [**BenchMarker: An Education-Inspired Toolkit for Highlighting Flaws in Multiple-Choice Benchmarks**](https://aclanthology.org/2026.acl-long.719/) (Balepur et al., ACL 2026 Main Conference). A demo paper describing this interface is under review at **HCOMP 2026 (Posters & Demos)**.
+
 ---
 
 ## Overview
